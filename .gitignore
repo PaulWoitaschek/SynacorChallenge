@@ -1,0 +1,13 @@
+# Ignore Gradle project-specific cache directory
+.gradle
+
+# Ignore Gradle build output directory
+build
+/.idea/gradle.xml
+/.idea/kotlinc.xml
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/modules/synacor.main.iml
+/.idea/uiDesigner.xml
+/.idea/vcs.xml
+/.idea/compiler.xml
