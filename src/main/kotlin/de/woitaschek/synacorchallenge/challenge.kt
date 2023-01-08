@@ -18,95 +18,74 @@ class VirtualMachine(memory: List<Int>) {
       },
   )
 
-  operator fun get(pointer: Int): Int {
-    return when (val value = memory[pointer]) {
-      in 0..32767 -> {
-        value
-      }
-      in 32768..32775 -> {
-        registers[registryIndex(value)]
-      }
-      else -> {
-        error("Invalid value=$pointer")
-      }
-    }
+  operator fun get(pointer: Int): Int = when (val value = memory[pointer]) {
+    in 0..32767 -> value
+    in 32768..32775 -> registers[registryIndex(value)]
+    else -> error("Invalid value=$pointer")
   }
 
-  private fun registryIndex(pointer: Int): Int {
-    check(pointer in 32768..32775) {
-      "Wrong pointer=$pointer"
-    }
-    return (pointer - 32768)
-  }
+  private fun registryIndex(pointer: Int): Int = (pointer - 32768)
 
   fun execute(pointer: Int): Int? {
-    check(pointer in 0..32767)
-
     fun a() = this[pointer + 1]
     fun b() = this[pointer + 2]
     fun c() = this[pointer + 3]
+
+    fun writeToRegisterA(value: Int) {
+      registers[registryIndex(memory[pointer + 1])] = value
+    }
     return when (OpCode.values()[this[pointer]]) {
-      OpCode.Jmp -> {
-        a()
-      }
+      OpCode.Jmp -> a()
       OpCode.Out -> {
         print(a().toChar())
         pointer + 2
       }
-      OpCode.NoOp -> {
-        pointer + 1
-      }
-      OpCode.Halt -> {
-        return null
-      }
+      OpCode.NoOp -> pointer + 1
+      OpCode.Halt -> return null
       OpCode.Set -> {
-        registers[registryIndex(memory[pointer + 1])] = b()
+        writeToRegisterA(b())
         pointer + 3
       }
-      OpCode.Jt -> {
-        if (a() != 0) b() else pointer + 3
-      }
-      OpCode.Jf -> {
-        if (a() == 0) b() else pointer + 3
-      }
+      OpCode.Jt -> if (a() != 0) b() else pointer + 3
+      OpCode.Jf -> if (a() == 0) b() else pointer + 3
       OpCode.Push -> {
         stack.push(a())
         pointer + 2
       }
       OpCode.Pop -> {
-        registers[registryIndex(memory[pointer + 1])] = stack.pop()!!
+        writeToRegisterA(stack.pop()!!)
         pointer + 2
       }
       OpCode.Eq -> {
-        registers[registryIndex(memory[pointer + 1])] = if (b() == c()) 1 else 0
+        writeToRegisterA(if (b() == c()) 1 else 0)
         pointer + 4
       }
       OpCode.Gt -> {
-        registers[registryIndex(memory[pointer + 1])] = if (b() > c()) 1 else 0
+        writeToRegisterA(if (b() > c()) 1 else 0)
         pointer + 4
       }
       OpCode.Mult -> {
-        registers[registryIndex(memory[pointer + 1])] = (b() * (c())).mod(32768)
+        writeToRegisterA((b() * c()).mod(32768))
         pointer + 4
       }
       OpCode.Mod -> {
-        registers[registryIndex(memory[pointer + 1])] = (b() % (c()))
+        writeToRegisterA(b() % c())
         pointer + 4
       }
       OpCode.And -> {
-        registers[registryIndex(memory[pointer + 1])] = (b() and (c())).mod(32768)
+        writeToRegisterA((b() and c()).mod(32768))
         pointer + 4
       }
       OpCode.Or -> {
-        registers[registryIndex(memory[pointer + 1])] = (b() or (c())).mod(32768)
+        writeToRegisterA((b() or c()).mod(32768))
         pointer + 4
       }
       OpCode.Not -> {
-        registers[registryIndex(memory[pointer + 1])] = b().inv() and 0x7FFF
+        writeToRegisterA(b().inv() and 0x7FFF)
         pointer + 3
       }
       OpCode.Rmem -> {
-        registers[registryIndex(memory[pointer + 1])] = memory[b()]
+        writeToRegisterA(memory[b()])
         pointer + 3
       }
       OpCode.Wmem -> {
@@ -117,9 +96,7 @@ class VirtualMachine(memory: List<Int>) {
         stack.add(pointer + 2)
         a()
       }
-      OpCode.Ret -> {
-        stack.pop()
-      }
+      OpCode.Ret -> stack.pop()
       OpCode.In -> {
         val answer = answers.first()
         val respond = if (answer.isEmpty()) {
@@ -129,11 +106,11 @@ class VirtualMachine(memory: List<Int>) {
           answers[0] = answer.drop(1)
           answer.first()
         }
-        registers[registryIndex(memory[pointer + 1])] = respond.code
+        writeToRegisterA(respond.code)
         pointer + 2
       }
       OpCode.Add -> {
-        registers[registryIndex(memory[pointer + 1])] = (b() + (c())).mod(32768)
+        writeToRegisterA((b() + c()).mod(32768))
         pointer + 4
       }
     }
